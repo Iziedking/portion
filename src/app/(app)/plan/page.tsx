@@ -6,7 +6,7 @@ import { formatMoney, toAmount } from "@/lib/money";
 import { currency } from "@/lib/paypal";
 import { getActivePlan, getLatestDraft, listDestinations, listPayments, type Plan, type Pot } from "@/lib/repo";
 
-const SOURCE_LABEL = { ai: "Proposed by Claude", preview: "Proposed by fixed preview rules, not AI", user: "Typed by you" } as const;
+const SOURCE_LABEL = { ai: "Proposed by the AI agent", preview: "Proposed by fixed preview rules, not AI", user: "Typed by you" } as const;
 
 function shareText(p: Pot, cur: string) {
   return p.shareKind === "percent" ? `${(p.shareBps / 100).toFixed(p.shareBps % 100 ? 2 : 0)}%` : formatMoney(p.fixedCents, cur);
@@ -97,7 +97,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
         <div>
           <h1 className="page-title">Plan</h1>
           <p className="page-sub">
-            Claude reads how you earn and what you tell it, then proposes pots with a reason for each. Code checks the proposal.
+            The AI agent reads how you earn and what you tell it, then proposes pots with a reason for each. Code checks the proposal.
             Nothing runs until you approve it. This is a budget you choose, not investment or tax advice.
           </p>
         </div>
@@ -107,7 +107,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
         {problems.length ? <Problems list={problems} /> : null}
         {params.error ? <div className="notice bad">{params.error}</div> : null}
         {params.fallback ? (
-          <div className="notice">Claude was not available, so this draft comes from fixed preview rules. It is labelled that way below.</div>
+          <div className="notice">The AI agent was not available, so this draft comes from fixed preview rules. It is labelled that way below.</div>
         ) : null}
         {params.saved ? <div className="notice ok">Draft saved and checked.</div> : null}
 
@@ -167,7 +167,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
               />
               <button className="btn primary">Propose a plan</button>
               <p className="small muted">
-                Claude sees your amounts and dates, your words and the names of your destinations. It never sees their emails and cannot add one.
+                The AI agent sees your amounts and dates, your words and the names of your destinations. It never sees their emails and cannot add one.
               </p>
             </form>
           </section>

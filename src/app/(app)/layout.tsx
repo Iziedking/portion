@@ -21,8 +21,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <b>{paypal === "sandbox" ? "Sandbox" : "Preview, no PayPal"}</b>
           </div>
           <div className="mode">
-            <span>AI</span>
-            <b>{ai === "claude" ? "Claude" : "Preview, fixed rules"}</b>
+            <span>AI agent</span>
+            <b>{ai === "claude" ? "On" : "Preview, fixed rules"}</b>
           </div>
           <p className="side-note">No real money. Portion only sees payments that pass through it.</p>
         </div>

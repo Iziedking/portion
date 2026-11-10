@@ -45,7 +45,7 @@ export default async function PaymentPage({ params }: { params: Promise<{ id: st
           <section className="card">
             <div className="card-head"><h2 className="card-title">Should this payment follow your plan</h2></div>
             <p className="soft" style={{ marginBottom: 16 }}>
-              {payment.checkSource === "ai" ? "Claude was not sure this is income, so nothing was divided or paid." : "Portion was not sure this is income, so nothing was divided or paid."}
+              {payment.checkSource === "ai" ? "The AI agent was not sure this is income, so nothing was divided or paid." : "Portion was not sure this is income, so nothing was divided or paid."}
               {" "}If it is income, divide it now. If not, leave it and it stays in the account untouched.
             </p>
             <form action={confirmPaymentAction}>

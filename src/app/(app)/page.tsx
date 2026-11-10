@@ -54,7 +54,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
               <div>
                 <p>{n.message}</p>
                 <p className="small muted" style={{ marginTop: 4 }}>
-                  Code found this pot ahead of pace. {n.source === "ai" ? "Claude wrote the words." : "Written from a fixed template."}
+                  Code found this pot ahead of pace. {n.source === "ai" ? "The AI agent wrote the words." : "Written from a fixed template."}
                 </p>
               </div>
             </div>
