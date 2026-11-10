@@ -22,6 +22,8 @@
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --r-card: 14px;
   --r-ctl: 8px;
+  --font-sans: "IBM Plex Sans", "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, Menlo;
   color-scheme: light;
 }
 
