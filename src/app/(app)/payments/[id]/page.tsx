@@ -1,9 +1,23 @@
 import { notFound } from "next/navigation";
 import { confirmPaymentAction, refreshPaymentAction } from "@/app/actions";
-import { DivideStrip, PartActions, PartTag, PaymentTag } from "@/components/ui";
-import { formatDateTime } from "@/lib/format";
+import { DivideStrip, PaymentTag } from "@/components/ui";
+import { PartStatusList, type PartState } from "@/components/part-status-list";
+import { formatDateTime, PART_LABEL } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
-import { batchesForPayment, getPayment, getPlan, partsForPayment } from "@/lib/repo";
+import { batchesForPayment, getPayment, getPlan, partsForPayment, type PartStatus } from "@/lib/repo";
+
+const PART_STATE: Record<PartStatus, PartState> = {
+  kept: "kept",
+  declined: "kept",
+  paid: "paid",
+  queued: "sending",
+  sent: "sending",
+  needs_approval: "waiting",
+  unclaimed: "waiting",
+  onhold: "waiting",
+  failed: "failed",
+  returned: "failed",
+};
 
 export default async function PaymentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,7 +26,6 @@ export default async function PaymentPage({ params }: { params: Promise<{ id: st
   const parts = partsForPayment(payment.id);
   const batches = batchesForPayment(payment.id);
   const plan = payment.planId ? getPlan(payment.planId) : null;
-  const back = `/payments/${payment.id}`;
 
   return (
     <>
@@ -75,36 +88,25 @@ export default async function PaymentPage({ params }: { params: Promise<{ id: st
               <h2 className="card-title">Each part</h2>
               <span className="card-meta">A PayPal batch can partly fail, so each part is read back on its own</span>
             </div>
-            <table className="table">
-              <thead>
-                <tr><th>Pot</th><th>Reason</th><th>Where</th><th>Status</th><th className="amt">Amount</th></tr>
-              </thead>
-              <tbody>
-                {parts.map((p) => (
-                  <tr key={p.id}>
-                    <td style={{ fontWeight: 500, whiteSpace: "nowrap" }}>{p.potName}</td>
-                    <td className="reason" style={{ maxWidth: 320 }}>
-                      {p.reason || p.purpose}
-                      {p.holdReason ? <p className="small" style={{ color: "var(--wait)", marginTop: 4 }}>{p.holdReason}</p> : null}
-                      {p.error ? <p className="small" style={{ color: "var(--bad)", marginTop: 4 }}>PayPal: {p.error}</p> : null}
-                    </td>
-                    <td>
-                      {p.kind === "keep" ? <span className="soft">Kept in account</span> : <span>{p.receiverEmail}</span>}
-                      {p.payoutItemId ? <div className="ids">Item {p.payoutItemId}</div> : null}
-                      {p.transactionId ? <div className="ids">Transaction {p.transactionId}</div> : null}
-                      {p.feeCents !== null ? <div className="ids">Fee read from PayPal {formatMoney(p.feeCents, payment.currency)}</div> : null}
-                    </td>
-                    <td>
-                      <div className="stack" style={{ gap: 8 }}>
-                        <PartTag part={p} />
-                        <PartActions part={p} back={back} />
-                      </div>
-                    </td>
-                    <td className="amt">{formatMoney(p.cents, payment.currency)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <PartStatusList
+              paymentId={payment.id}
+              rows={parts.map((p) => ({
+                id: p.id,
+                pot: p.potName,
+                where: p.kind === "keep" ? "kept in account" : `to ${p.receiverEmail}`,
+                detail: [p.reason || p.purpose, p.holdReason, p.error ? `PayPal: ${p.error}` : null].filter(Boolean).join(" "),
+                amount: formatMoney(p.cents, payment.currency),
+                state: PART_STATE[p.status],
+                label: PART_LABEL[p.status],
+                canApprove: p.status === "needs_approval",
+                canKeep: p.status === "failed" || p.status === "returned",
+                ids: [
+                  p.payoutItemId ? `Item ${p.payoutItemId}` : null,
+                  p.transactionId ? `Transaction ${p.transactionId}` : null,
+                  p.feeCents !== null ? `Fee read from PayPal ${formatMoney(p.feeCents, payment.currency)}` : null,
+                ].filter((x): x is string => x !== null),
+              }))}
+            />
           </section>
         ) : null}
 

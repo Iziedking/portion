@@ -194,6 +194,19 @@ export async function refreshPaymentAction(form: FormData) {
   back(`/payments/${id}`, {});
 }
 
+/** Called by the part list while parts are on their way. Reads each batch back, no redirect. */
+export async function readBackAction(paymentId: number): Promise<void> {
+  if (!Number.isSafeInteger(paymentId) || paymentId <= 0) return;
+  for (const b of batchesForPayment(paymentId)) {
+    if (b.state !== "posted") continue;
+    try {
+      await refreshBatch(b.id);
+    } catch {
+      // The next poll or the 20-second timer tries again.
+    }
+  }
+}
+
 export async function approvePartAction(form: FormData) {
   await approvePart(Number(text(form, "partId")));
   back(text(form, "back") || "/", {});
