@@ -1,0 +1,38 @@
+# Internal planning and agent files
+IDEA.md
+PLAN.md
+BUILD_PROMPT.md
+HACKATHON_RESEARCH.md
+SUBMISSION.md
+CLAUDE.md
+AGENTS.md
+.claude/
+.izie/
+.codex/
+.superpowers/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and builds
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Local data
+data/
+*.sqlite
+*.sqlite-journal
+*.db
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
