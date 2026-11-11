@@ -83,11 +83,11 @@ The tests cover cent splitting, retries producing one batch, a timeout after Pay
 
 | | State |
 | --- | --- |
-| Pay in with PayPal Checkout, divide, payout batch, per-part read-back | Built. Run against the PayPal sandbox on 2026-11-10: a 1,200.00 order was captured, divided to the cent, and one part was paid out as a batch. PayPal read it back as waiting to be claimed, with its $0.25 fee. |
-| AI agent plan proposal, payment check, nudge wording | Plan proposal and payment check run against the live model on 2026-11-10. Nudge wording tested with a scripted model |
+| Pay in with PayPal Checkout, divide, payout batch, per-part read-back | Built. Run against the PayPal sandbox on 2026-11-10: a 1,200.00 order was captured, divided to the cent, and one part was paid out as a batch. PayPal read it back as waiting to be claimed, with its $0.25 fee. On 2026-11-11 a 300.00 spend from the Rent and bills pot went to a sandbox Personal account, waited for approval as a new destination, and PayPal read it back as paid (batch F2BDHD5HN2XCN, item 522E8JJQ9VEFG). |
+| AI agent plan proposal, payment check, nudge wording | All three run against the live model. The nudge came after the 300.00 spend left Rent and bills 69% used with 33% of the month gone; code found it ahead of pace and checked the AI agent's words repeat its numbers |
 | Retry safety | Run against the PayPal sandbox: sending the same payout request again was refused with "Batch with given sender_batch_id already exists", and the original batch still had one item. Repeat with `node scripts/check-idempotency.mjs` |
 | Guards for new destinations, per-payout and daily limits | Built and tested |
-| Pace tracking and nudges | Built and tested |
+| Pace tracking and nudges | Built, tested, and seen with sandbox money on 2026-11-11 |
 | Try a draft plan on past payments | Built |
 | Earning history | Seeded. The "Load seeded demo history" button adds nine payments to Portion's own records, marked "seeded" everywhere. They are not PayPal payments. PayPal's transaction search is not used |
 | Webhooks | Not built. A 20-second timer instead |

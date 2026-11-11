@@ -126,6 +126,11 @@ describe("unclaimed part", () => {
     const after = getPayment(payment.id)!;
     expect(after.status).toBe("paying");
     expect(after.statusReason).toContain("30 days");
+
+    const { overviewByPot } = await import("@/lib/budget");
+    const row = overviewByPot().find((r) => r.pendingCents > 0)!;
+    expect(row.pendingCents).toBeGreaterThan(0);
+    expect(overviewByPot().every((r) => r.problemCents === 0)).toBe(true);
   });
 });
 

@@ -347,8 +347,8 @@ export function overviewByPot(): OverviewRow[] {
       `SELECT pot_name, COALESCE(MAX(CASE WHEN payment_id IS NOT NULL THEN purpose END), '') AS purpose,
         SUM(CASE WHEN payment_id IS NOT NULL AND status IN ('kept','declined') THEN cents ELSE 0 END) AS kept,
         SUM(CASE WHEN payment_id IS NOT NULL AND kind = 'payout' AND status = 'paid' THEN cents ELSE 0 END) AS paid,
-        SUM(CASE WHEN kind = 'payout' AND status IN ('needs_approval','queued','sent') THEN cents ELSE 0 END) AS pending,
-        SUM(CASE WHEN status IN ('failed','returned','unclaimed','onhold') THEN cents ELSE 0 END) AS problem,
+        SUM(CASE WHEN kind = 'payout' AND status IN ('needs_approval','queued','sent','unclaimed','onhold') THEN cents ELSE 0 END) AS pending,
+        SUM(CASE WHEN status IN ('failed','returned') THEN cents ELSE 0 END) AS problem,
         SUM(CASE WHEN spend_id IS NOT NULL AND status = 'paid' THEN cents ELSE 0 END) AS spent
        FROM parts GROUP BY pot_key, pot_name ORDER BY pot_name`,
     )
