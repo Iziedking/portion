@@ -69,7 +69,7 @@ With `PAYPAL_CLIENT_ID` empty, Portion uses a local stand-in for PayPal so you c
 
 ### AI agent
 
-Set `ANTHROPIC_API_KEY` to give the AI agent a model. It defaults to `claude-opus-5-5` and can be changed with `ANTHROPIC_MODEL`.
+Set `ANTHROPIC_API_KEY` to give the AI agent a model. It defaults to `claude-sonnet-5-5` and can be changed with `ANTHROPIC_MODEL`.
 
 ### Tests
 
@@ -122,7 +122,7 @@ These are ideas for later. None of them exist in this code.
 - **Next.js 16** (App Router, server actions) for the app and its server routes.
 - **SQLite** through Node's built-in `node:sqlite`, in one file.
 - **PayPal Orders v2** to take a payment and **PayPal Payouts v1** to pay out, sandbox only.
-- **AI agent**, running on Claude (`claude-opus-5-5`, through `@anthropic-ai/sdk` with structured outputs) proposes the plan from earnings and the user's words, decides whether an incoming payment should follow the plan or wait, and words the nudges.
+- **AI agent**, running on Claude (`claude-sonnet-5-5`, through `@anthropic-ai/sdk` with structured outputs) proposes the plan from earnings and the user's words, decides whether an incoming payment should follow the plan or wait, and words the nudges.
 - **Zod** to validate every PayPal response and every AI agent answer before use.
 - **Vitest** for tests.
 - **Claude Code** helped write the code.
