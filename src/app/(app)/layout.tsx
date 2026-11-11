@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getAdvisor } from "@/lib/ai";
 import { getGateway } from "@/lib/paypal";
 import { listPayments, partsWaitingApproval } from "@/lib/repo";
@@ -10,10 +11,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="shell">
       <aside className="side">
-        <div className="brand">
+        <Link href="/" className="brand" aria-label="Portion home">
           <span className="brand-mark" aria-hidden />
           <span className="brand-name">Portion</span>
-        </div>
+        </Link>
         <Nav waiting={waiting} />
         <div className="side-foot">
           <div className="mode">
