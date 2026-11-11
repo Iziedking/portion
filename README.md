@@ -8,7 +8,7 @@ Built for the PayPal AI Hackathon on Devpost.
 
 Demo video: https://youtu.be/aZCrRrJt6nE (1:36, recorded on the PayPal sandbox)
 
-Live demo: https://portion.kingizie.tech (hosted on Render's free plan, so the first visit after a quiet spell takes about a minute to wake up, and the data resets when the service restarts. Press "Load seeded demo history" on the Plan page to start again).
+Live demo: https://portion.kingizie.tech (hosted on Render. It is one shared sandbox demo, so you may see payments other visitors made.)
 
 ## What a session looks like
 
@@ -90,6 +90,7 @@ The tests cover cent splitting, retries producing one batch, a timeout after Pay
 The live demo runs as one Render web service built straight from this repository's `main` branch.
 
 - The service was created through Render's MCP server from the coding agent: a Node web service on the free plan in US East, build `npm ci && npm run build`, start `npm start`, with automatic deploys on every push to `main`.
+- It now runs on a Starter instance with a 1 GB persistent disk at `/var/data`, so the SQLite file (`DATABASE_PATH=/var/data/portion.sqlite`) survives restarts and deploys, and there is no cold start.
 - The settings that are not secret (`ANTHROPIC_MODEL`, `AI_DAILY_CALL_LIMIT`, `CURRENCY`, `DATABASE_PATH`, `APP_URL`) were set through the MCP server too. The PayPal and Anthropic keys were typed into Render's dashboard by hand, so they never passed through the agent.
 - Deploy status and build logs were read back through the MCP server, and the Render CLI (`render login`, then `render workspace set`) was used to sign in and choose the workspace from the terminal.
 - `portion.kingizie.tech` is a custom domain on the service: a CNAME to `portion-q190.onrender.com`, with the certificate issued by Render. `APP_URL` points at it, because PayPal sends the payer back to that address after checkout.
