@@ -6,6 +6,8 @@ Built for the PayPal AI Hackathon on Devpost.
 
 **This runs in the PayPal sandbox only. No real money moves.**
 
+Demo video: https://youtu.be/aZCrRrJt6nE (1:36, recorded on the PayPal sandbox)
+
 Live demo: https://portion.kingizie.tech (hosted on Render's free plan, so the first visit after a quiet spell takes about a minute to wake up, and the data resets when the service restarts. Press "Load seeded demo history" on the Plan page to start again).
 
 ## What a session looks like
