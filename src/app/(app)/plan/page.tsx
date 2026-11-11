@@ -6,7 +6,7 @@ import { formatMoney, toAmount } from "@/lib/money";
 import { currency } from "@/lib/paypal";
 import { getActivePlan, getLatestDraft, listDestinations, listPayments, type Plan, type Pot } from "@/lib/repo";
 
-const SOURCE_LABEL = { ai: "Proposed by the AI agent", preview: "Proposed by fixed preview rules, not AI", user: "Typed by you" } as const;
+const SOURCE_LABEL = { ai: "Proposed by the AI agent", preview: "Fixed preview rules, not AI", user: "Typed by you" } as const;
 
 function shareText(p: Pot, cur: string) {
   return p.shareKind === "percent" ? `${(p.shareBps / 100).toFixed(p.shareBps % 100 ? 2 : 0)}%` : formatMoney(p.fixedCents, cur);
@@ -79,6 +79,28 @@ function FragmentRow({ i, p, destinations }: { i: number; p: Pot | null; destina
   );
 }
 
+function PotCards({ plan, destinations, cur }: { plan: Plan; destinations: { id: number; label: string }[]; cur: string }) {
+  return (
+    <div className="pot-cards">
+      {plan.pots.map((p, i) => (
+        <div className="pot-card" key={p.id}>
+          <div className="pot-card-top">
+            <span className="pot-name">
+              <span className="dot" style={{ background: potColor(i) }} aria-hidden />
+              {p.name}
+            </span>
+            <span className="pot-share mono">{shareText(p, cur)}</span>
+          </div>
+          <p className="reason">{p.reason || p.purpose}</p>
+          <span className={`small ${p.destinationId ? "pays" : "muted"}`}>
+            {p.destinationId ? `Pays ${destinations.find((d) => d.id === p.destinationId)?.label ?? "someone"}` : "Kept in account"}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default async function PlanPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const params = await searchParams;
   const cur = currency();
@@ -90,192 +112,180 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
   const problems = parseProblems(params.problems);
   const editing = draft ?? active;
   const trial = draft ? tryOnPastPayments(draft.pots, 6) : [];
+  const words = draft?.userWords ?? active?.userWords ?? "";
+  const recent = payments.slice(0, 9).reverse();
+  const top = Math.max(1, ...recent.map((p) => p.amountCents));
 
   return (
     <>
       <div className="page-head">
         <div>
           <h1 className="page-title">Plan</h1>
-          <p className="page-sub">
-            The AI agent reads how you earn and what you tell it, then proposes pots with a reason for each. Code checks the proposal.
-            Nothing runs until you approve it. This is a budget you choose, not investment or tax advice.
-          </p>
+          <p className="page-sub">The AI agent proposes. Code checks. You approve. This is a budget you choose, not investment or tax advice.</p>
         </div>
       </div>
 
-      <div className="stack-lg">
+      <div className="stack">
         {problems.length ? <Problems list={problems} /> : null}
         {params.error ? <div className="notice bad">{params.error}</div> : null}
-        {params.fallback ? (
-          <div className="notice">The AI agent was not available, so this draft comes from fixed preview rules. It is labelled that way below.</div>
-        ) : null}
+        {params.fallback ? <div className="notice">The AI agent was not available, so this draft comes from fixed preview rules. It is labelled that way below.</div> : null}
         {params.saved ? <div className="notice ok">Draft saved and checked.</div> : null}
 
-        {draft ? (
-          <section className="card">
-            <div className="card-head">
-              <h2 className="card-title">Draft plan</h2>
-              <span className="card-meta">{SOURCE_LABEL[draft.source]}</span>
-            </div>
-            {draft.summary ? <p style={{ marginBottom: 8 }}>{draft.summary}</p> : null}
-            {draft.savingsNote ? <p className="soft" style={{ marginBottom: 16 }}>{draft.savingsNote}</p> : null}
-            <div className="list" style={{ marginBottom: 24 }}>
-              {draft.pots.map((p, i) => (
-                <div className="list-row" key={p.id} style={{ alignItems: "flex-start" }}>
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <span className="dot" style={{ background: potColor(i), marginTop: 6 }} />
-                    <div>
-                      <div style={{ fontWeight: 500 }}>
-                        {p.name} <span className="soft num">{shareText(p, cur)}</span>
-                      </div>
-                      <p className="reason">{p.reason || p.purpose}</p>
-                    </div>
+        <div className="plan-grid">
+          <div className="stack">
+            <section className="card said">
+              {words && !params.rewrite ? (
+                <>
+                  <span className="small muted">You said</span>
+                  <p className="said-words">{words}</p>
+                  <a href="/plan?rewrite=1" className="btn quiet small said-edit">Change my words</a>
+                </>
+              ) : (
+                <form action={proposePlanAction} className="stack">
+                  <label htmlFor="words" className="strong">Tell the AI agent about your month</label>
+                  <textarea
+                    id="words"
+                    className="textarea"
+                    name="words"
+                    rows={6}
+                    maxLength={1500}
+                    defaultValue={words}
+                    placeholder="Rent is 900 a month, phone and power about 120. I want to keep 25% for tax, send Tunde his share when it is the logo work, and save for a laptop."
+                    required
+                  />
+                  <button className="btn primary">Propose a plan</button>
+                  <p className="small muted">The AI agent sees your amounts and dates, your words and the names of the people you pay. It never sees their emails and cannot add one.</p>
+                </form>
+              )}
+            </section>
+
+            <section className="card">
+              <div className="card-head">
+                <h2 className="card-title">How you earn</h2>
+                <span className="card-meta">Payments recorded by Portion</span>
+              </div>
+              {summary.count === 0 ? (
+                <div className="stack">
+                  <p className="empty">No payments yet. A new sandbox account has no history, so you can load a seeded demo history.</p>
+                  <form action={seedAction}>
+                    <button className="btn">Load seeded demo history</button>
+                  </form>
+                </div>
+              ) : (
+                <>
+                  <div className="earn-bars" role="img" aria-label="Your recent payments by size">
+                    {recent.map((p, i) => (
+                      <span key={p.id} className={i === recent.length - 1 ? "on" : ""} style={{ height: `${Math.max(4, (p.amountCents / top) * 100)}%` }} title={`${formatDate(p.receivedAt)} ${formatMoney(p.amountCents, p.currency)}`} />
+                    ))}
                   </div>
-                  <span className="small muted" style={{ whiteSpace: "nowrap" }}>
-                    {p.destinationId ? `Pays ${destinations.find((d) => d.id === p.destinationId)?.label}` : "Kept in account"}
+                  <p className="soft small" style={{ marginTop: 12 }}>
+                    {summary.count} payments over {summary.months} month{summary.months === 1 ? "" : "s"}, from <span className="num">{cur} {summary.smallest}</span> to{" "}
+                    <span className="num">{cur} {summary.largest}</span>. Pattern: {summary.unevenness}.
+                  </p>
+                  <details className="fold">
+                    <summary>Show the {Math.min(10, payments.length)} latest payments</summary>
+                    <table className="table">
+                      <tbody>
+                        {payments.slice(0, 10).map((p) => (
+                          <tr key={p.id}>
+                            <td className="muted" style={{ whiteSpace: "nowrap" }}>{formatDate(p.receivedAt)}</td>
+                            <td>{p.note || <span className="muted">No note</span>} {p.seeded ? <span className="seeded">seeded</span> : null}</td>
+                            <td className="amt">{formatMoney(p.amountCents, p.currency)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </details>
+                </>
+              )}
+            </section>
+          </div>
+
+          <div className="stack">
+            {draft ? (
+              <section className="card proposal">
+                <div className="card-head">
+                  <h2 className="card-title proposal-title">
+                    <span className="ai-mark mono" aria-hidden>AI</span>
+                    {draft.source === "user" ? "Your draft plan" : `The AI agent proposes ${draft.pots.length} envelopes`}
+                  </h2>
+                  <span className="tag">{SOURCE_LABEL[draft.source]}</span>
+                </div>
+                {draft.summary ? <p className="soft">{draft.summary}</p> : null}
+                {draft.savingsNote ? <p className="soft small" style={{ marginTop: 8 }}>{draft.savingsNote}</p> : null}
+                <div style={{ marginTop: 20 }}>
+                  <PotCards plan={draft} destinations={destinations} cur={cur} />
+                </div>
+
+                <div className="tried">
+                  <div className="strong">Tried on your last payments</div>
+                  <p className="small muted">What this draft would have done. Nothing is paid.</p>
+                  {trial.map((t) => (
+                    <div className="tried-row" key={t.paymentId}>
+                      <span className="mono small muted">{t.date.slice(5)}</span>
+                      <span className="num strong small">{formatMoney(t.amountCents, cur)}</span>
+                      {t.parts ? (
+                        <span className="tried-strip">
+                          {t.parts.map((x, i) => (
+                            <span key={x.potName} style={{ flexGrow: x.cents, background: potColor(i) }} title={`${x.potName} ${formatMoney(x.cents, cur)}`} />
+                          ))}
+                        </span>
+                      ) : (
+                        <span className="small muted">{t.problem}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <form action={approvePlanAction} className="approve-bar">
+                  <input type="hidden" name="planId" value={draft.id} />
+                  <div className="checks">
+                    {["Shares add to 100%", "Only people you added", "No emails in the text"].map((c) => (
+                      <span key={c} className="check small">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                  <button className="btn primary lg">Approve this plan</button>
+                </form>
+              </section>
+            ) : active ? (
+              <section className="card proposal">
+                <div className="card-head">
+                  <h2 className="card-title">Approved plan</h2>
+                  <span className="card-meta">
+                    {SOURCE_LABEL[active.source]}, approved {active.approvedAt ? formatDate(active.approvedAt) : ""}
                   </span>
                 </div>
-              ))}
-            </div>
-
-            <h3 className="card-title" style={{ marginBottom: 8 }}>Try it on past payments</h3>
-            <p className="small muted" style={{ marginBottom: 12 }}>What this draft would have done. Nothing is paid.</p>
-            <table className="table" style={{ marginBottom: 24 }}>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th className="amt">Payment</th>
-                  {draft.pots.map((p) => <th key={p.id} className="amt">{p.name}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {trial.map((t) => (
-                  <tr key={t.paymentId}>
-                    <td className="muted" style={{ whiteSpace: "nowrap" }}>{t.date} {t.seeded ? <span className="seeded">seeded</span> : null}</td>
-                    <td className="amt">{formatMoney(t.amountCents, cur)}</td>
-                    {t.parts
-                      ? t.parts.map((x) => <td key={x.potName} className="amt">{formatMoney(x.cents, cur)}</td>)
-                      : <td colSpan={draft.pots.length} className="muted">{t.problem}</td>}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <h3 className="card-title" style={{ marginBottom: 12 }}>Edit</h3>
-            <Editor plan={draft} destinations={destinations} />
-            <form action={approvePlanAction} style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--line)" }} className="actions">
-              <input type="hidden" name="planId" value={draft.id} />
-              <button className="btn primary lg">Approve this plan</button>
-              <span className="small muted">
-                After this, each new payment is divided with no clicks. New destinations and amounts over your limits still wait for you.
-              </span>
-            </form>
-          </section>
-        ) : null}
-
-        {active ? (
-          <section className="card">
-            <div className="card-head">
-              <h2 className="card-title">Approved plan</h2>
-              <span className="card-meta">
-                {SOURCE_LABEL[active.source]}, approved {active.approvedAt ? formatDate(active.approvedAt) : ""}
-              </span>
-            </div>
-            <table className="table">
-              <thead>
-                <tr><th>Pot</th><th>Reason</th><th>Destination</th><th className="amt">Share</th></tr>
-              </thead>
-              <tbody>
-                {active.pots.map((p, i) => (
-                  <tr key={p.id}>
-                    <td style={{ whiteSpace: "nowrap" }}>
-                      <span className="dot" style={{ background: potColor(i), marginRight: 8 }} />
-                      {p.name}
-                    </td>
-                    <td className="reason">{p.reason || p.purpose}</td>
-                    <td className="soft">{p.destinationId ? destinations.find((d) => d.id === p.destinationId)?.label : "Kept in account"}</td>
-                    <td className="amt">{shareText(p, cur)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        ) : null}
-
-        <div className="grid cols-2">
-          <section className="card">
-            <div className="card-head">
-              <h2 className="card-title">How you earn</h2>
-              <span className="card-meta">Payments recorded by Portion</span>
-            </div>
-            {summary.count === 0 ? (
-              <div className="stack">
-                <p className="empty">No payments yet. A new sandbox account has no history, so you can load a seeded demo history.</p>
-                <form action={seedAction}>
-                  <button className="btn">Load seeded demo history</button>
-                </form>
-              </div>
+                <PotCards plan={active} destinations={destinations} cur={cur} />
+                <p className="small muted" style={{ marginTop: 16 }}>Each new payment divides by this plan with no clicks. New people and amounts over your limits still wait for you.</p>
+              </section>
             ) : (
-              <>
-                <p className="soft">
-                  {summary.count} payments over {summary.months} month{summary.months === 1 ? "" : "s"}, average{" "}
-                  <span className="num">{cur} {summary.averageAmount}</span>. Smallest <span className="num">{summary.smallest}</span>,
-                  largest <span className="num">{summary.largest}</span>. Pattern: {summary.unevenness}.
-                </p>
-                <details className="fold">
-                  <summary>Show the {Math.min(10, payments.length)} latest payments</summary>
-                <table className="table">
-                  <thead>
-                    <tr><th>Date</th><th>Note</th><th className="amt">Amount</th></tr>
-                  </thead>
-                  <tbody>
-                    {payments.slice(0, 10).map((p) => (
-                      <tr key={p.id}>
-                        <td className="muted" style={{ whiteSpace: "nowrap" }}>{formatDate(p.receivedAt)}</td>
-                        <td>
-                          {p.note || <span className="muted">No note</span>} {p.seeded ? <span className="seeded">seeded</span> : null}
-                        </td>
-                        <td className="amt">{formatMoney(p.amountCents, p.currency)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </details>
-              </>
+              <section className="card proposal empty-proposal">
+                <h2 className="card-title">The AI agent’s proposal appears here</h2>
+                <p className="soft">Write what you need on the left. The AI agent proposes envelopes with a reason for each, code checks them, and you approve.</p>
+              </section>
             )}
-          </section>
 
-          <section className="card">
-            <div className="card-head">
-              <h2 className="card-title">Tell Portion what you need</h2>
-            </div>
-            <form action={proposePlanAction} className="stack">
-              <textarea
-                className="textarea"
-                name="words"
-                rows={7}
-                maxLength={1500}
-                defaultValue={draft?.userWords ?? active?.userWords ?? ""}
-                placeholder="Rent is 900 a month, phone and power about 120. I want to keep 25% for tax, send Tunde his share when it is the logo work, and save for a laptop."
-                required
-              />
-              <button className="btn primary">Propose a plan</button>
-              <p className="small muted">
-                The AI agent sees your amounts and dates, your words and the names of your destinations. It never sees their emails and cannot add one.
-              </p>
-            </form>
-          </section>
+            {editing ? (
+              <details className="card fold-card">
+                <summary className="strong">{draft ? "Edit shares by hand" : "Change the plan by hand"}</summary>
+                <p className="small muted" style={{ margin: "8px 0 16px" }}>Saving makes a draft. The approved plan keeps running until you approve the new one.</p>
+                <Editor plan={editing} destinations={destinations} />
+              </details>
+            ) : (
+              <details className="card fold-card">
+                <summary className="strong">Or write a plan by hand</summary>
+                <div style={{ marginTop: 16 }}>
+                  <Editor plan={null} destinations={destinations} />
+                </div>
+              </details>
+            )}
+          </div>
         </div>
-
-        {!draft ? (
-          <section className="card">
-            <div className="card-head">
-              <h2 className="card-title">{active ? "Change the plan" : "Or write a plan by hand"}</h2>
-              <span className="card-meta">Saving makes a draft. The approved plan keeps running until you approve the new one.</span>
-            </div>
-            <Editor plan={editing} destinations={destinations} />
-          </section>
-        ) : null}
       </div>
     </>
   );

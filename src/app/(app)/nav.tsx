@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 export function Nav({ waiting }: { waiting: number }) {
   const path = usePathname();
   const item = (href: string, label: string, count?: number) => {
-    const active = href === "/" ? path === "/" : path.startsWith(href);
+    const active = path.startsWith(href);
     return (
       <Link href={href} aria-current={active ? "page" : undefined}>
         <span>{label}</span>
@@ -16,10 +16,10 @@ export function Nav({ waiting }: { waiting: number }) {
   };
   return (
     <nav className="nav">
-      {item("/", "Today", waiting)}
+      {item("/today", "Today", waiting)}
       {item("/plan", "Plan")}
       {item("/payments", "Payments")}
-      {item("/spend", "Pay from a pot")}
+      {item("/spend", "Pay from an envelope")}
       {item("/overview", "Where it went")}
       <div className="nav-label">Setup</div>
       {item("/settings", "Destinations and limits")}

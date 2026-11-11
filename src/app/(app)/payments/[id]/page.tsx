@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { confirmPaymentAction, refreshPaymentAction } from "@/app/actions";
-import { DivideStrip, PaymentTag } from "@/components/ui";
+import { DivideStrip, MoneyTrail, PaymentTag } from "@/components/ui";
 import { PartStatusList, type PartState } from "@/components/part-status-list";
 import { formatDateTime, PART_LABEL } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
 import { batchesForPayment, getPayment, getPlan, partsForPayment, type PartStatus } from "@/lib/repo";
+import { paymentTrail } from "@/lib/trail";
 
 const PART_STATE: Record<PartStatus, PartState> = {
   kept: "kept",
@@ -50,6 +51,14 @@ export default async function PaymentPage({ params }: { params: Promise<{ id: st
       </div>
 
       <div className="stack-lg">
+        <section className="card">
+          <div className="card-head">
+            <h2 className="card-title">The money trail</h2>
+            <span className="card-meta">Every step is read from PayPal, not assumed</span>
+          </div>
+          <MoneyTrail steps={paymentTrail(payment, parts, batches)} />
+        </section>
+
         {payment.statusReason ? (
           <div className={`notice ${payment.status === "needs_attention" ? "bad" : ""}`}>{payment.statusReason}</div>
         ) : null}
@@ -71,7 +80,7 @@ export default async function PaymentPage({ params }: { params: Promise<{ id: st
         {parts.length ? (
           <section className="card">
             <div className="card-head">
-              <h2 className="card-title">How it was divided</h2>
+              <h2 className="card-title">Split into envelopes</h2>
               <span className="card-meta">Whole cents, checked to add up to the payment</span>
             </div>
             <DivideStrip

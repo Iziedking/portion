@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { PartTag } from "@/components/ui";
+import { MiniTrail, PartTag } from "@/components/ui";
 import { overviewByPot } from "@/lib/budget";
 import { formatDate } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
 import { currency } from "@/lib/paypal";
 import { allParts, getBatch } from "@/lib/repo";
+import { partTrail } from "@/lib/trail";
 
 export default function OverviewPage() {
   const cur = currency();
@@ -18,7 +19,7 @@ export default function OverviewPage() {
         <div>
           <h1 className="page-title">Where it went</h1>
           <p className="page-sub">
-            Every cent Portion divided, by pot and purpose, with the PayPal IDs. Portion only sees money that passes through it.
+            Every cent Portion divided, by envelope and purpose, with the PayPal IDs. Portion only sees money that passes through it.
             Cash and bank spending are not here.
           </p>
         </div>
@@ -26,7 +27,7 @@ export default function OverviewPage() {
       <div className="stack-lg">
         <section className="card">
           <div className="card-head">
-            <h2 className="card-title">By pot</h2>
+            <h2 className="card-title">By envelope</h2>
             <span className="card-meta">{formatMoney(total, cur)} divided in total</span>
           </div>
           {rows.length === 0 ? (
@@ -35,8 +36,8 @@ export default function OverviewPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Pot</th><th>Purpose</th>
-                  <th className="amt">Kept</th><th className="amt">Paid out</th><th className="amt">Spent from pot</th>
+                  <th>Envelope</th><th>Purpose</th>
+                  <th className="amt">Kept</th><th className="amt">Paid out</th><th className="amt">Spent from envelope</th>
                   <th className="amt">Waiting</th><th className="amt">Did not arrive</th>
                 </tr>
               </thead>
@@ -60,14 +61,14 @@ export default function OverviewPage() {
         <section className="card">
           <div className="card-head">
             <h2 className="card-title">Every part</h2>
-            <span className="card-meta">Newest first</span>
+            <span className="card-meta">Dots: received, checked, split, sent, confirmed</span>
           </div>
           {parts.length === 0 ? (
             <p className="empty">No parts yet.</p>
           ) : (
             <table className="table">
               <thead>
-                <tr><th>Date</th><th>Pot</th><th>From</th><th>To</th><th>PayPal IDs</th><th>Status</th><th className="amt">Amount</th></tr>
+                <tr><th>Date</th><th>Envelope</th><th>From</th><th>To</th><th>PayPal IDs</th><th>Trail</th><th>Status</th><th className="amt">Amount</th></tr>
               </thead>
               <tbody>
                 {parts.map((p) => {
@@ -77,7 +78,7 @@ export default function OverviewPage() {
                       <td className="muted" style={{ whiteSpace: "nowrap" }}>{formatDate(p.createdAt)}</td>
                       <td style={{ fontWeight: 500 }}>{p.potName}</td>
                       <td>
-                        {p.paymentId ? <Link href={`/payments/${p.paymentId}`} className="soft">Payment {p.paymentId}</Link> : <span className="soft">Spend from pot</span>}
+                        {p.paymentId ? <Link href={`/payments/${p.paymentId}`} className="soft">Payment {p.paymentId}</Link> : <span className="soft">Spend from envelope</span>}
                       </td>
                       <td>{p.kind === "keep" ? <span className="soft">Kept in account</span> : p.receiverEmail}</td>
                       <td className="ids">
@@ -85,6 +86,7 @@ export default function OverviewPage() {
                         {p.payoutItemId ? <div>Item {p.payoutItemId}</div> : null}
                         {!batch && !p.payoutItemId ? "None, not sent" : null}
                       </td>
+                      <td style={{ minWidth: 120 }}><MiniTrail states={partTrail(p)} /></td>
                       <td><PartTag part={p} /></td>
                       <td className="amt">{formatMoney(p.cents, cur)}</td>
                     </tr>

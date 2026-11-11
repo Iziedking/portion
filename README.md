@@ -6,6 +6,8 @@ Built for the PayPal AI Hackathon on Devpost.
 
 **This runs in the PayPal sandbox only. No real money moves.**
 
+Live demo: https://portion.kingizie.tech (hosted on Render's free plan, so the first visit after a quiet spell takes about a minute to wake up, and the data resets when the service restarts. Press "Load seeded demo history" on the Plan page to start again).
+
 ## What a session looks like
 
 This is the run recorded in the PayPal sandbox on 10 and 11 November 2026.
@@ -54,7 +56,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000 for the landing page. The app itself starts at http://localhost:3000/today.
 
 ### Preview mode, no keys
 
@@ -80,6 +82,16 @@ npm run build
 ```
 
 The tests cover cent splitting, retries producing one batch, a timeout after PayPal took the batch, partial failure, the payment-note injection, an unsure or failing AI check, plans that do not add up or point at unknown destinations, per-payout and daily limits, first payouts to new destinations, pace and nudges, and a failed spend going back into its pot.
+
+## Hosting on Render
+
+The live demo runs as one Render web service built straight from this repository's `main` branch.
+
+- The service was created through Render's MCP server from the coding agent: a Node web service on the free plan in US East, build `npm ci && npm run build`, start `npm start`, with automatic deploys on every push to `main`.
+- The settings that are not secret (`ANTHROPIC_MODEL`, `AI_DAILY_CALL_LIMIT`, `CURRENCY`, `DATABASE_PATH`, `APP_URL`) were set through the MCP server too. The PayPal and Anthropic keys were typed into Render's dashboard by hand, so they never passed through the agent.
+- Deploy status and build logs were read back through the MCP server, and the Render CLI (`render login`, then `render workspace set`) was used to sign in and choose the workspace from the terminal.
+- `portion.kingizie.tech` is a custom domain on the service: a CNAME to `portion-q190.onrender.com`, with the certificate issued by Render. `APP_URL` points at it, because PayPal sends the payer back to that address after checkout.
+- The AI agent is capped at 30 calls a day on the public demo, so nobody can run up the bill.
 
 ## What is real and what is not
 

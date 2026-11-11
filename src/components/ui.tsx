@@ -2,6 +2,7 @@ import { approvePartAction, declinePartAction, keepFailedPartAction } from "@/ap
 import { formatMoney } from "@/lib/money";
 import { PART_LABEL, PART_TONE, PAYMENT_LABEL, PAYMENT_TONE, potColor } from "@/lib/format";
 import type { Part, PaymentStatus } from "@/lib/repo";
+import type { StepState, TrailStep } from "@/lib/trail";
 
 export function Tag({ tone, children }: { tone: "ok" | "wait" | "bad" | "plain"; children: React.ReactNode }) {
   return <span className={`tag ${tone === "plain" ? "" : tone}`}>{children}</span>;
@@ -41,6 +42,7 @@ export function Envelope({
   ahead,
   currency,
   compact = false,
+  href,
 }: {
   name: string;
   color: string;
@@ -50,11 +52,13 @@ export function Envelope({
   ahead: boolean;
   currency: string;
   compact?: boolean;
+  href?: string;
 }) {
   const filled = fundedCents > 0 ? Math.max(0, Math.min(1, leftCents / fundedCents)) : 0;
   const pace = fundedCents > 0 ? Math.max(0, Math.min(1, expectedLeftCents / fundedCents)) : 0;
+  const Wrap = href ? "a" : "div";
   return (
-    <div className={`env${compact ? " compact" : ""}${ahead ? " is-ahead" : ""}`}>
+    <Wrap href={href} className={`env${compact ? " compact" : ""}${ahead ? " is-ahead" : ""}${href ? " is-link" : ""}`} title={href ? `Pay from ${name}` : undefined}>
       <div className="env-body" role="img" aria-label={`${name}: ${formatMoney(leftCents, currency)} left of ${formatMoney(fundedCents, currency)}`}>
         <div className="env-fill" style={{ height: `${filled * 100}%`, background: color }} />
         <svg className="env-flap" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
@@ -69,7 +73,7 @@ export function Envelope({
           {fundedCents === 0 ? "Nothing in it yet" : ahead ? <span className="ahead">Ahead of pace</span> : `of ${formatMoney(fundedCents, currency)}`}
         </div>
       </div>
-    </div>
+    </Wrap>
   );
 }
 
@@ -153,4 +157,65 @@ export function parseProblems(raw: string | string[] | undefined): string[] {
   } catch {
     return [];
   }
+}
+
+const STEP_ICON: Record<StepState, React.ReactNode> = {
+  done: <path d="M20 6 9 17l-5-5" />,
+  bad: <path d="M18 6 6 18M6 6l12 12" />,
+  current: null,
+  todo: null,
+  skip: <path d="M5 12h14" />,
+};
+
+/** The money trail: one payment from PayPal capture to PayPal confirmation, step by step. */
+export function MoneyTrail({ steps }: { steps: TrailStep[] }) {
+  return (
+    <ol className="trail" aria-label="The money trail">
+      {steps.map((s, i) => (
+        <li key={s.key} className={`trail-step is-${s.state}`} style={{ animationDelay: `${i * 90}ms` }}>
+          <div className="trail-top">
+            <span className="trail-dot" aria-hidden>
+              {STEP_ICON[s.state] ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  {STEP_ICON[s.state]}
+                </svg>
+              ) : null}
+            </span>
+            {i < steps.length - 1 ? <span className="trail-line" aria-hidden /> : null}
+          </div>
+          <div className="trail-text">
+            <div className="trail-label">{s.label}</div>
+            <div className="trail-detail">{s.detail}</div>
+            {s.ids.map((id) => (
+              <div className="trail-id" key={id}>{id}</div>
+            ))}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Five dots for a ledger row: received, checked, split, sent, confirmed. */
+export function MiniTrail({ states, labels = false }: { states: StepState[]; labels?: boolean }) {
+  const names = ["Received", "Checked", "Split", "Sent", "Confirmed"];
+  return (
+    <div className="mini-trail" role="img" aria-label={states.map((s, i) => `${names[i]}: ${s}`).join(", ")}>
+      <div className="mini-dots">
+        {states.map((s, i) => (
+          <span key={i} className="mini-seg">
+            <span className={`mini-dot is-${s}`} />
+            {i < states.length - 1 ? <span className={`mini-line is-${states[i + 1] === "done" || states[i + 1] === "bad" ? "done" : "todo"}`} /> : null}
+          </span>
+        ))}
+      </div>
+      {labels ? (
+        <div className="mini-labels">
+          {names.map((n) => (
+            <span key={n}>{n}</span>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
 }

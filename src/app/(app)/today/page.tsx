@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { checkNowAction } from "@/app/actions";
-import { DivideStrip, Envelope, MonthLine, PartActions, PaymentTag } from "@/components/ui";
+import { DivideStrip, Envelope, MiniTrail, MonthLine, PartActions, PaymentTag } from "@/components/ui";
+import { SetupGuide } from "@/components/setup-guide";
+import { paymentTrail } from "@/lib/trail";
 import { monthPeriod, potPace, refreshNudges } from "@/lib/budget";
 import { formatDate, monthTitle, potColor } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
-import { currency } from "@/lib/paypal";
-import { getActivePlan, getDestination, listPayments, partsForPayment, partsWaitingApproval } from "@/lib/repo";
+import { appUrl, currency } from "@/lib/paypal";
+import { batchesForPayment, getActivePlan, getDestination, getLatestDraft, listDestinations, listPayments, partsForPayment, partsWaitingApproval } from "@/lib/repo";
 
 const DAY = 86_400_000;
 
@@ -35,6 +37,17 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
   const latestParts = latest ? partsForPayment(latest.id) : [];
   const payoutPots = plan?.pots.filter((p) => p.destinationId !== null) ?? [];
   const colorOf = (key: string) => potColor(Math.max(0, plan?.pots.findIndex((x) => x.key === key) ?? 0));
+  const destinations = listDestinations();
+  const setup = {
+    destinations: destinations.map((d) => d.label),
+    hasPlan: !!plan,
+    hasDraft: !!getLatestDraft(),
+    hasPayment: payments.length > 0,
+    historyCount: listPayments().filter((p) => p.seeded).length,
+    payLink: `${appUrl()}/pay`,
+  };
+  const setupDone = setup.destinations.length > 0 && setup.hasPlan && setup.hasPayment;
+  const latestTrail = latest ? paymentTrail(latest, latestParts, batchesForPayment(latest.id)) : [];
 
   return (
     <>
@@ -43,25 +56,27 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
           <h1 className="page-title">{monthTitle(now)}</h1>
           <MonthLine elapsed={period.elapsed} day={day} days={days} />
         </div>
-        <form action={checkNowAction}>
-          <button className="btn">Check PayPal now</button>
-        </form>
+        <div className="actions">
+          <form action={checkNowAction}>
+            <button className="btn quiet">Check PayPal now</button>
+          </form>
+          {plan && pots.length ? <Link href="/spend" className="btn">Pay from an envelope</Link> : null}
+        </div>
       </div>
 
       <div className="stack">
         {params.approved ? <div className="notice ok">Plan approved. New payments now divide by themselves.</div> : null}
-        {params.spent ? <div className="notice ok">Payment from the pot sent to PayPal. Its status is on the overview.</div> : null}
+        {params.spent ? <div className="notice ok">Payout sent to PayPal. Follow it on Where it went.</div> : null}
 
+        {!setupDone ? <SetupGuide s={setup} /> : null}
+
+        {plan ? (
         <section className="card month">
-          {!plan ? (
-            <p className="empty">
-              No approved plan yet, so nothing is divided. <Link href="/plan" className="link">Make one</Link> from your earnings and your own words.
-            </p>
-          ) : (
+          {(
             <>
               <div className="month-head">
                 <div>
-                  <div className="label">Left in your pots</div>
+                  <div className="label">Left in your envelopes</div>
                   <div className="hero-figure num">{formatMoney(heldLeft, cur)}</div>
                   <div className="soft">of {formatMoney(heldFunded, cur)} kept this month</div>
                 </div>
@@ -75,7 +90,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
                     <dd className="num">{formatMoney(paidOut, cur)}</dd>
                   </div>
                   <div>
-                    <dt>Spent from pots</dt>
+                    <dt>Spent from envelopes</dt>
                     <dd className="num">{formatMoney(spent, cur)}</dd>
                   </div>
                 </dl>
@@ -87,6 +102,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
                 <div className="envelopes">
                   {pots.map((p) => (
                     <Envelope
+                      href={`/spend?pot=${encodeURIComponent(p.key)}`}
                       key={p.key}
                       name={p.name}
                       color={colorOf(p.key)}
@@ -102,7 +118,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
 
               <div className="month-foot">
                 <span className="legend-tick">
-                  <span className="tick-swatch" aria-hidden /> Where each pot should be today
+                  <span className="tick-swatch" aria-hidden /> Where each envelope should be today
                 </span>
                 {payoutPots.length ? (
                   <span>
@@ -117,7 +133,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
                   <div>
                     <p>{n.message}</p>
                     <p className="small muted">
-                      Code found this pot ahead of pace. {n.source === "ai" ? "The AI agent wrote the words." : "Written from a fixed template."}
+                      Code found this envelope ahead of pace. {n.source === "ai" ? "The AI agent wrote the words." : "Written from a fixed template."}
                     </p>
                   </div>
                 </div>
@@ -125,6 +141,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
             </>
           )}
         </section>
+        ) : null}
 
         {waitingCount ? (
           <section className="card attention">
@@ -152,7 +169,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
                     </div>
                     <p className="reason">{part.holdReason}</p>
                   </div>
-                  <PartActions part={part} back="/" />
+                  <PartActions part={part} back="/today" />
                 </div>
               ))}
             </div>
@@ -162,16 +179,16 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
         <div className="grid cols-main">
           <section className="card">
             <div className="card-head">
-              <h2 className="card-title">Pots this month</h2>
+              <h2 className="card-title">Envelopes this month</h2>
               <span className="card-meta">Kept, spent and what is left</span>
             </div>
             {pots.length === 0 ? (
-              <p className="empty">No pots that keep money yet.</p>
+              <p className="empty">No envelopes that keep money yet.</p>
             ) : (
               <table className="table ledger">
                 <thead>
                   <tr>
-                    <th>Pot</th>
+                    <th>Envelope</th>
                     <th className="amt">Kept</th>
                     <th className="amt">Spent</th>
                     <th className="amt">Left</th>
@@ -216,6 +233,9 @@ export default async function Today({ searchParams }: { searchParams: Promise<Re
                   <span className="num" style={{ fontWeight: 500 }}>{formatMoney(latest.amountCents, latest.currency)}</span>
                   <span className="soft"> from {latest.payerName ?? "a payer"}</span>
                 </p>
+                <div style={{ marginBottom: 16 }}>
+                  <MiniTrail labels states={latestTrail.map((t) => t.state)} />
+                </div>
                 {latestParts.length ? (
                   <DivideStrip
                     total={latest.amountCents}

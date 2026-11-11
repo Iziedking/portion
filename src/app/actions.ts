@@ -130,8 +130,8 @@ export async function approvePlanAction(form: FormData) {
   }
   // Payments that were waiting for a plan run now.
   await tick();
-  revalidatePath("/");
-  back("/", { approved: "1" });
+  revalidatePath("/today");
+  back("/today", { approved: "1" });
 }
 
 // ---------- paying in ----------
@@ -209,17 +209,17 @@ export async function readBackAction(paymentId: number): Promise<void> {
 
 export async function approvePartAction(form: FormData) {
   await approvePart(Number(text(form, "partId")));
-  back(text(form, "back") || "/", {});
+  back(text(form, "back") || "/today", {});
 }
 
 export async function declinePartAction(form: FormData) {
   declinePart(Number(text(form, "partId")));
-  back(text(form, "back") || "/", {});
+  back(text(form, "back") || "/today", {});
 }
 
 export async function keepFailedPartAction(form: FormData) {
   keepFailedPart(Number(text(form, "partId")));
-  back(text(form, "back") || "/", {});
+  back(text(form, "back") || "/today", {});
 }
 
 // ---------- spending ----------
@@ -236,11 +236,11 @@ export async function spendAction(form: FormData) {
     back("/spend", { error: (err as Error).message });
   }
   await refreshNudges();
-  back("/", { spent: "1" });
+  back("/today", { spent: "1" });
 }
 
 export async function checkNowAction() {
   await tick();
   await refreshNudges();
-  back("/", {});
+  back("/today", {});
 }
