@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { spendAction } from "@/app/actions";
+import { Envelope } from "@/components/ui";
 import { potPace } from "@/lib/budget";
+import { potColor } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
 import { currency } from "@/lib/paypal";
 import { getActivePlan, listDestinations } from "@/lib/repo";
@@ -26,9 +28,9 @@ export default async function SpendPage({ searchParams }: { searchParams: Promis
         <section className="card">
           {params.error ? <div className="notice bad" style={{ marginBottom: 16 }}>{params.error}</div> : null}
           {!plan || pots.length === 0 ? (
-            <p className="empty">You need an approved plan with at least one pot that keeps its money. <Link href="/plan" style={{ color: "var(--accent-ink)" }}>Go to the plan</Link>.</p>
+            <p className="empty">You need an approved plan with at least one pot that keeps its money. <Link href="/plan" className="link">Go to the plan</Link>.</p>
           ) : destinations.length === 0 ? (
-            <p className="empty">Add who you pay first. <Link href="/settings" style={{ color: "var(--accent-ink)" }}>Add a destination</Link>.</p>
+            <p className="empty">Add who you pay first. <Link href="/settings" className="link">Add a destination</Link>.</p>
           ) : (
             <form action={spendAction} className="stack">
               <div className="field">
@@ -65,16 +67,26 @@ export default async function SpendPage({ searchParams }: { searchParams: Promis
           )}
         </section>
         <section className="card">
-          <div className="card-head"><h2 className="card-title">Left this month</h2></div>
-          <div className="list">
-            {pots.map((p) => (
-              <div className="list-row" key={p.key}>
-                <span>{p.name}</span>
-                <span className="num">{formatMoney(p.leftCents, cur)}</span>
-              </div>
-            ))}
-            {pots.length === 0 ? <p className="empty">No pots to show.</p> : null}
-          </div>
+          <div className="card-head"><h2 className="card-title">Left this month</h2><span className="card-meta">Tick shows where it should be today</span></div>
+          {pots.length === 0 ? (
+            <p className="empty">No pots to show.</p>
+          ) : (
+            <div className="envelopes compact">
+              {pots.map((p) => (
+                <Envelope
+                  key={p.key}
+                  compact
+                  name={p.name}
+                  color={potColor(Math.max(0, plan?.pots.findIndex((x) => x.key === p.key) ?? 0))}
+                  leftCents={p.leftCents}
+                  fundedCents={p.fundedCents}
+                  expectedLeftCents={p.expectedLeftCents}
+                  ahead={p.ahead}
+                  currency={cur}
+                />
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </>

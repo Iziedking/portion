@@ -15,16 +15,74 @@ export function PartTag({ part }: { part: Part }) {
   return <Tag tone={PART_TONE[part.status]}>{PART_LABEL[part.status]}</Tag>;
 }
 
+/** How far through the month we are. The tick is the pace mark used on every pot. */
+export function MonthLine({ elapsed, day, days }: { elapsed: number; day: number; days: number }) {
+  return (
+    <div className="month-line">
+      <div className="month-track" aria-hidden>
+        <div className="month-fill" style={{ width: `${elapsed * 100}%` }} />
+        <div className="tick" style={{ left: `calc(${elapsed * 100}% - 1px)` }} />
+      </div>
+      <span className="month-label num">Day {day} of {days}</span>
+    </div>
+  );
+}
+
+/**
+ * A pot drawn as an envelope. The ink is the money still in it, the tick is
+ * how much should still be in it today if spending kept pace with the month.
+ */
+export function Envelope({
+  name,
+  color,
+  leftCents,
+  fundedCents,
+  expectedLeftCents,
+  ahead,
+  currency,
+  compact = false,
+}: {
+  name: string;
+  color: string;
+  leftCents: number;
+  fundedCents: number;
+  expectedLeftCents: number;
+  ahead: boolean;
+  currency: string;
+  compact?: boolean;
+}) {
+  const filled = fundedCents > 0 ? Math.max(0, Math.min(1, leftCents / fundedCents)) : 0;
+  const pace = fundedCents > 0 ? Math.max(0, Math.min(1, expectedLeftCents / fundedCents)) : 0;
+  return (
+    <div className={`env${compact ? " compact" : ""}${ahead ? " is-ahead" : ""}`}>
+      <div className="env-body" role="img" aria-label={`${name}: ${formatMoney(leftCents, currency)} left of ${formatMoney(fundedCents, currency)}`}>
+        <div className="env-fill" style={{ height: `${filled * 100}%`, background: color }} />
+        <svg className="env-flap" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+          <polyline points="0,0 50,100 100,0" vectorEffect="non-scaling-stroke" />
+        </svg>
+        {fundedCents > 0 ? <div className="tick tick-h" style={{ bottom: `calc(${pace * 100}% - 1px)` }} /> : null}
+      </div>
+      <div className="env-text">
+        <div className="env-name">{name}</div>
+        <div className="env-amt num">{formatMoney(leftCents, currency)}</div>
+        <div className="env-of">
+          {fundedCents === 0 ? "Nothing in it yet" : ahead ? <span className="ahead">Ahead of pace</span> : `of ${formatMoney(fundedCents, currency)}`}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** One payment drawn as the pots it became. Widths are the real share of each part. */
 export function DivideStrip({ parts, total, currency }: { parts: { name: string; cents: number; index: number }[]; total: number; currency: string }) {
   return (
     <div>
       <div className="strip" role="img" aria-label="How this payment was divided">
-        {parts.map((p) => (
+        {parts.map((p, i) => (
           <div
             key={p.name}
             className="strip-seg"
-            style={{ flexGrow: p.cents, flexBasis: 0, background: potColor(p.index) }}
+            style={{ flexGrow: p.cents, flexBasis: 0, background: potColor(p.index), animationDelay: `${i * 60}ms` }}
             title={`${p.name}: ${formatMoney(p.cents, currency)}`}
           >
             {p.cents / total > 0.12 ? formatMoney(p.cents, currency) : ""}

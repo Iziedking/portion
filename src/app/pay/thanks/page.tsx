@@ -7,9 +7,9 @@ export default async function Thanks({ searchParams }: { searchParams: Promise<R
   const payment = id ? getPayment(Number(id)) : null;
   return (
     <div className="pay-page">
-      <div className="pay-card card" style={{ padding: 32 }}>
-        <div className="pay-head">
-          <h1>Payment received</h1>
+      <div className="invoice">
+        <div className="invoice-head">
+          <h1 className="invoice-title">Payment received</h1>
           <p className="soft" style={{ marginTop: 4 }}>
             {payment ? `${formatMoney(payment.amountCents, payment.currency)} was captured.` : "The payment was captured."} You can close this page.
           </p>

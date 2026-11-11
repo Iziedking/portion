@@ -111,68 +111,6 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
         ) : null}
         {params.saved ? <div className="notice ok">Draft saved and checked.</div> : null}
 
-        <div className="grid cols-main">
-          <section className="card">
-            <div className="card-head">
-              <h2 className="card-title">How you earn</h2>
-              <span className="card-meta">Payments recorded by Portion</span>
-            </div>
-            {summary.count === 0 ? (
-              <div className="stack">
-                <p className="empty">No payments yet. A new sandbox account has no history, so you can load a seeded demo history.</p>
-                <form action={seedAction}>
-                  <button className="btn">Load seeded demo history</button>
-                </form>
-              </div>
-            ) : (
-              <>
-                <p className="soft" style={{ marginBottom: 16 }}>
-                  {summary.count} payments over {summary.months} month{summary.months === 1 ? "" : "s"}, average{" "}
-                  <span className="num">{cur} {summary.averageAmount}</span>. Smallest <span className="num">{summary.smallest}</span>,
-                  largest <span className="num">{summary.largest}</span>. Pattern: {summary.unevenness}.
-                </p>
-                <table className="table">
-                  <thead>
-                    <tr><th>Date</th><th>Note</th><th className="amt">Amount</th></tr>
-                  </thead>
-                  <tbody>
-                    {payments.slice(0, 10).map((p) => (
-                      <tr key={p.id}>
-                        <td className="muted" style={{ whiteSpace: "nowrap" }}>{formatDate(p.receivedAt)}</td>
-                        <td>
-                          {p.note || <span className="muted">No note</span>} {p.seeded ? <span className="seeded">seeded</span> : null}
-                        </td>
-                        <td className="amt">{formatMoney(p.amountCents, p.currency)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </>
-            )}
-          </section>
-
-          <section className="card">
-            <div className="card-head">
-              <h2 className="card-title">Tell Portion what you need</h2>
-            </div>
-            <form action={proposePlanAction} className="stack">
-              <textarea
-                className="textarea"
-                name="words"
-                rows={7}
-                maxLength={1500}
-                defaultValue={draft?.userWords ?? active?.userWords ?? ""}
-                placeholder="Rent is 900 a month, phone and power about 120. I want to keep 25% for tax, send Tunde his share when it is the logo work, and save for a laptop."
-                required
-              />
-              <button className="btn primary">Propose a plan</button>
-              <p className="small muted">
-                The AI agent sees your amounts and dates, your words and the names of your destinations. It never sees their emails and cannot add one.
-              </p>
-            </form>
-          </section>
-        </div>
-
         {draft ? (
           <section className="card">
             <div className="card-head">
@@ -263,6 +201,71 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
             </table>
           </section>
         ) : null}
+
+        <div className="grid cols-2">
+          <section className="card">
+            <div className="card-head">
+              <h2 className="card-title">How you earn</h2>
+              <span className="card-meta">Payments recorded by Portion</span>
+            </div>
+            {summary.count === 0 ? (
+              <div className="stack">
+                <p className="empty">No payments yet. A new sandbox account has no history, so you can load a seeded demo history.</p>
+                <form action={seedAction}>
+                  <button className="btn">Load seeded demo history</button>
+                </form>
+              </div>
+            ) : (
+              <>
+                <p className="soft">
+                  {summary.count} payments over {summary.months} month{summary.months === 1 ? "" : "s"}, average{" "}
+                  <span className="num">{cur} {summary.averageAmount}</span>. Smallest <span className="num">{summary.smallest}</span>,
+                  largest <span className="num">{summary.largest}</span>. Pattern: {summary.unevenness}.
+                </p>
+                <details className="fold">
+                  <summary>Show the {Math.min(10, payments.length)} latest payments</summary>
+                <table className="table">
+                  <thead>
+                    <tr><th>Date</th><th>Note</th><th className="amt">Amount</th></tr>
+                  </thead>
+                  <tbody>
+                    {payments.slice(0, 10).map((p) => (
+                      <tr key={p.id}>
+                        <td className="muted" style={{ whiteSpace: "nowrap" }}>{formatDate(p.receivedAt)}</td>
+                        <td>
+                          {p.note || <span className="muted">No note</span>} {p.seeded ? <span className="seeded">seeded</span> : null}
+                        </td>
+                        <td className="amt">{formatMoney(p.amountCents, p.currency)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                </details>
+              </>
+            )}
+          </section>
+
+          <section className="card">
+            <div className="card-head">
+              <h2 className="card-title">Tell Portion what you need</h2>
+            </div>
+            <form action={proposePlanAction} className="stack">
+              <textarea
+                className="textarea"
+                name="words"
+                rows={7}
+                maxLength={1500}
+                defaultValue={draft?.userWords ?? active?.userWords ?? ""}
+                placeholder="Rent is 900 a month, phone and power about 120. I want to keep 25% for tax, send Tunde his share when it is the logo work, and save for a laptop."
+                required
+              />
+              <button className="btn primary">Propose a plan</button>
+              <p className="small muted">
+                The AI agent sees your amounts and dates, your words and the names of your destinations. It never sees their emails and cannot add one.
+              </p>
+            </form>
+          </section>
+        </div>
 
         {!draft ? (
           <section className="card">
