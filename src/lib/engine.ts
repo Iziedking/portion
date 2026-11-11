@@ -7,6 +7,7 @@ import {
   getActivePlan,
   getBatch,
   getDestination,
+  getInstallId,
   getLimits,
   getPayment,
   markDestinationApproved,
@@ -177,7 +178,11 @@ function newBatch(owner: { paymentId?: number; spendId?: number }, partIds: numb
       (getDb().prepare(`SELECT COUNT(*) AS n FROM batches WHERE ${ownerCol} = ?`).get(ownerId) as Row).n,
     ) + 1;
     // Derived from the payment, never random: the same payment always maps to the same request.
-    const requestId = owner.paymentId ? `portion-pay-${ownerId}-${seq}` : `portion-spend-${ownerId}-${seq}`;
+    // The install ID keeps two databases on one PayPal account from sharing request IDs.
+    const install = getInstallId();
+    const requestId = owner.paymentId
+      ? `portion-${install}-pay-${ownerId}-${seq}`
+      : `portion-${install}-spend-${ownerId}-${seq}`;
     const info = getDb()
       .prepare(`INSERT INTO batches (request_id, ${ownerCol}, state, created_at) VALUES (?, ?, 'created', ?)`)
       .run(requestId, ownerId, nowIso());

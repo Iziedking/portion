@@ -39,7 +39,7 @@ The AI proposes, chooses and explains. Code does everything that moves or counts
 
 - **Pay in.** PayPal Orders v2 with intent `CAPTURE`. The payer approves on PayPal, comes back to `/api/paypal/return`, and Portion captures the order. The amount recorded is the amount PayPal captured.
 - **Divide.** A payment is claimed with a single database update before it is divided, so it is divided at most once.
-- **Pay out.** One `POST /v1/payments/payouts` per payment, with a `PayPal-Request-Id` and `sender_batch_id` derived from the payment (`portion-pay-<payment>-<n>`). A retry sends the same IDs, so PayPal returns the same batch instead of paying twice. If PayPal does not answer, the batch is marked unknown and retried with the same IDs.
+- **Pay out.** One `POST /v1/payments/payouts` per payment, with a `PayPal-Request-Id` and `sender_batch_id` derived from the payment (`portion-<database id>-pay-<payment>-<n>`, where the database id is made once and kept, so a reset demo never reuses an earlier request). A retry sends the same IDs, so PayPal returns the same batch instead of paying twice. If PayPal does not answer, the batch is marked unknown and retried with the same IDs.
 - **Read back.** `GET /v1/payments/payouts/{id}` updates each part on its own: paid, waiting to be claimed, on hold, failed or returned. A batch can pay four people and fail on the fifth. The payment shows "Needs attention" and each failed part can be kept in the account under its pot.
 - **Fees.** Shown only when PayPal returns `payout_item_fee`. Portion never estimates them.
 - **No webhooks.** There is no public URL in this build, so a timer runs every 20 seconds to retry unsure posts and read open batches. "Check PayPal now" and "Read back from PayPal" do the same on demand.

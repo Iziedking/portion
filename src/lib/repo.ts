@@ -35,6 +35,20 @@ export function setLimits(limits: Limits) {
   }
 }
 
+/**
+ * A short ID made once per database and then kept. PayPal remembers a sender_batch_id
+ * for the whole account, so two databases on one sandbox app (a reset demo, a second
+ * copy) must not both send "payment 1, batch 1".
+ */
+export function getInstallId(): string {
+  const db = getDb();
+  const row = db.prepare("SELECT value FROM settings WHERE key = 'install_id'").get() as Row | undefined;
+  if (row) return String(row.value);
+  const id = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+  db.prepare("INSERT INTO settings (key, value) VALUES ('install_id', ?) ON CONFLICT(key) DO NOTHING").run(id);
+  return String((db.prepare("SELECT value FROM settings WHERE key = 'install_id'").get() as Row).value);
+}
+
 // ---------- destinations ----------
 
 export interface Destination extends KnownDestination {

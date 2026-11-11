@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { approvePart, processPayment, refreshBatch, tick } from "@/lib/engine";
 import { failNextPayoutPosts, previewPayoutPostCount } from "@/lib/paypal/preview";
-import { addDestination, approvePlan, batchesForPayment, countBatches, getPayment, listDestinations, partsForPayment, saveDraft, setLimits } from "@/lib/repo";
+import { addDestination, approvePlan, getInstallId, batchesForPayment, countBatches, getPayment, listDestinations, partsForPayment, saveDraft, setLimits } from "@/lib/repo";
 import { freshWorld, incoming, pot, standardPlan, type ScriptedAdvisor } from "./helpers";
 
 let advisor: ScriptedAdvisor;
@@ -58,6 +58,24 @@ describe("retry", () => {
     expect(after[0]!.state).toBe("posted");
     expect(after[0]!.requestId).toBe(batch!.requestId);
     expect(previewPayoutPostCount()).toBe(2); // posted twice, one batch exists
+  });
+});
+
+describe("request IDs across databases", () => {
+  it("carry an ID kept per database, so a reset database never reuses an earlier request ID", async () => {
+    standardPlan();
+    const payment = incoming(50_000);
+    await processPayment(payment.id);
+    const first = getInstallId();
+    expect(getInstallId()).toBe(first);
+    expect(batchesForPayment(payment.id)[0]!.requestId).toBe(`portion-${first}-pay-${payment.id}-1`);
+
+    freshWorld();
+    standardPlan();
+    const again = incoming(50_000);
+    await processPayment(again.id);
+    expect(again.id).toBe(payment.id);
+    expect(batchesForPayment(again.id)[0]!.requestId).not.toBe(`portion-${first}-pay-${payment.id}-1`);
   });
 });
 
