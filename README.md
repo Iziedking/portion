@@ -8,13 +8,15 @@ Built for the PayPal AI Hackathon on Devpost.
 
 ## What a session looks like
 
-1. The freelancer has nine past payments, from 150.00 to 3,200.00. Portion reports the pattern ("very uneven: the largest payment is 21.3 times the smallest").
-2. They type what they need: "Rent is 900 a month and bills about 120. I keep a quarter for tax. Tunde gets 15% because he does my illustration work. I want to save for a new laptop."
-3. The AI agent proposes pots, shares and a savings note. Code checks the proposal. They try it on past payments, edit it and approve it.
-4. A client pays 1,200.00 with PayPal Checkout. Portion captures it, divides it and sends Tunde's part as a payout. Once Tunde has been approved as a destination, nobody clicks anything.
-5. Tunde's part is read back from PayPal and shows as paid. Only then does the payment show as done.
-6. They pay rent from the Bills pot. Bills is now 74% used and the month is 33% gone, so a nudge appears.
-7. A payout to a new destination, or above their limit, waits on the Today page for approval.
+This is the run recorded in the PayPal sandbox on 10 and 11 November 2026.
+
+1. The freelancer has nine past payments, from 150.00 to 3,200.00. They are seeded demo history and marked "seeded" on every screen. Portion reports the pattern: "very uneven: the largest payment is 21.3 times the smallest".
+2. They type what they need: "Rent is 900 a month and bills about 120. I keep a quarter of every payment for tax. Lawful does my illustration work and gets 10% of each payment. I want to save for a new laptop and keep a buffer for slow months."
+3. The AI agent proposes six pots, each with a reason: Tax 25%, Lawful illustration 10%, Rent and bills 36%, Slow month buffer 14%, New laptop 10% and Everyday spending 5%. Code checks the proposal. The freelancer tries it on past payments and approves it.
+4. A client pays 1,200.00 with PayPal Checkout. Portion captures it and divides it to the cent: 300.00, 120.00, 432.00, 168.00, 120.00 and 60.00. Lawful's 120.00 goes out as a payout batch with nobody clicking anything.
+5. Each part is read back from PayPal on its own. Lawful's email is not a sandbox account, so PayPal holds the payout as unclaimed and Portion shows it as waiting to be claimed, with the 0.25 fee PayPal charged. The payment stays "In progress" instead of "Done".
+6. They pay 300.00 of rent from the Rent and bills pot to their landlord. The landlord is a new destination, so the payout waits on Today until they approve it. PayPal then reads it back as paid.
+7. Rent and bills is now 69% used and the month is 33% gone, so a nudge appears: 132.00 left for 20 days. Code found the pot ahead of pace and the AI agent wrote the words.
 8. "Where it went" shows every cent by pot and purpose, with the PayPal capture, batch and item IDs.
 
 ## How the AI is kept in its lane
