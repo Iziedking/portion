@@ -93,7 +93,7 @@ export default async function PaymentPage({ params }: { params: Promise<{ id: st
               rows={parts.map((p) => ({
                 id: p.id,
                 pot: p.potName,
-                where: p.kind === "keep" ? "kept in account" : `to ${p.receiverEmail}`,
+                where: p.kind === "keep" ? "" : `to ${p.receiverEmail}`,
                 detail: [p.reason || p.purpose, p.holdReason, p.error ? `PayPal: ${p.error}` : null].filter(Boolean).join(" "),
                 amount: formatMoney(p.cents, payment.currency),
                 state: PART_STATE[p.status],

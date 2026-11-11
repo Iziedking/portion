@@ -60,7 +60,7 @@ With `PAYPAL_CLIENT_ID` empty, Portion uses a local stand-in for PayPal so you c
 
 ### PayPal sandbox
 
-1. On developer.paypal.com, open Apps & Credentials, Sandbox, and create an app. Check that Payouts is enabled for it.
+1. On developer.paypal.com, open Testing Tools, Sandbox Accounts, and create a Business account in a country that can receive payments, such as the United States. Then open Apps & Credentials, Sandbox, create an app linked to that account, and check that Payouts is enabled for it. If checkout says the merchant cannot accept payments (`PAYEE_ACCOUNT_LOCKED_OR_CLOSED`), the app is linked to a business account that cannot receive.
 2. Put the client ID and secret in `.env`. Keep `APP_URL` as the address you open the app on, because PayPal sends the payer back there.
 3. In Sandbox accounts, note one Personal account to pay as the client and one or two more Personal accounts to receive payouts. Add the receivers as destinations in Portion.
 4. Open the client pay page (`/pay`), pay, and sign in at PayPal with the sandbox Personal account.
@@ -83,8 +83,9 @@ The tests cover cent splitting, retries producing one batch, a timeout after Pay
 
 | | State |
 | --- | --- |
-| Pay in with PayPal Checkout, divide, payout batch, per-part read-back | Built. Proven end to end in preview mode. Not yet run against the PayPal sandbox with our own keys |
-| AI agent plan proposal, payment check, nudge wording | Built and tested with a scripted model. Not yet run against the live model |
+| Pay in with PayPal Checkout, divide, payout batch, per-part read-back | Built. Run against the PayPal sandbox on 2026-11-10: a 1,200.00 order was captured, divided to the cent, and one part was paid out as a batch. PayPal read it back as waiting to be claimed, with its $0.25 fee. |
+| AI agent plan proposal, payment check, nudge wording | Plan proposal and payment check run against the live model on 2026-11-10. Nudge wording tested with a scripted model |
+| Retry safety | Run against the PayPal sandbox: sending the same payout request again was refused with "Batch with given sender_batch_id already exists", and the original batch still had one item. Repeat with `node scripts/check-idempotency.mjs` |
 | Guards for new destinations, per-payout and daily limits | Built and tested |
 | Pace tracking and nudges | Built and tested |
 | Try a draft plan on past payments | Built |

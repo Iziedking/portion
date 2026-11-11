@@ -61,6 +61,39 @@ describe("retry", () => {
   });
 });
 
+describe("duplicate batch reply", () => {
+  it("a retry that PayPal refuses as a duplicate is not shown as failed and is never posted again", async () => {
+    const { setGateway, PayPalError } = await import("@/lib/paypal");
+    const { PreviewGateway } = await import("@/lib/paypal/preview");
+    standardPlan();
+    // First post times out after PayPal took it; the retry gets PayPal's real duplicate reply.
+    let posts = 0;
+    const base = new PreviewGateway("http://localhost:3000");
+    setGateway({
+      mode: "sandbox",
+      createOrder: base.createOrder.bind(base),
+      captureOrder: base.captureOrder.bind(base),
+      getPayout: base.getPayout.bind(base),
+      async createPayout() {
+        posts += 1;
+        if (posts === 1) throw new PayPalError("timeout", 0, "NETWORK", true);
+        throw new PayPalError("User business error.", 400, "Batch with given sender_batch_id already exists", false);
+      },
+    });
+    const payment = incoming(50_000);
+    await processPayment(payment.id);
+    await tick();
+    await tick();
+
+    const part = partsForPayment(payment.id).find((p) => p.kind === "payout")!;
+    expect(part.status).toBe("sent");
+    expect(part.holdReason).toContain("already has this payout");
+    expect(batchesForPayment(payment.id)).toHaveLength(1);
+    expect(posts).toBe(2);
+    expect(getPayment(payment.id)!.status).not.toBe("needs_attention");
+  });
+});
+
 describe("partial failure", () => {
   it("one failed part does not mark the payment as done", async () => {
     const good = addDestination("Mum", "mum@example.com");
@@ -80,6 +113,19 @@ describe("partial failure", () => {
     const after = getPayment(payment.id)!;
     expect(after.status).toBe("needs_attention");
     expect(after.status).not.toBe("done");
+  });
+});
+
+describe("unclaimed part", () => {
+  it("an unclaimed part reads as waiting at PayPal, not as a failure", async () => {
+    standardPlan({ email: "someone@unclaimed.example" });
+    const payment = incoming(10_000);
+    await processPayment(payment.id);
+    await refreshBatch(batchesForPayment(payment.id)[0]!.id);
+    expect(partsForPayment(payment.id).find((p) => p.kind === "payout")!.status).toBe("unclaimed");
+    const after = getPayment(payment.id)!;
+    expect(after.status).toBe("paying");
+    expect(after.statusReason).toContain("30 days");
   });
 });
 

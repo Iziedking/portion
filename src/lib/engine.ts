@@ -24,7 +24,8 @@ import {
 type Row = Record<string, unknown>;
 
 const TERMINAL_OK: PartStatus[] = ["paid", "kept", "declined"];
-const PROBLEM: PartStatus[] = ["failed", "returned", "unclaimed", "onhold"];
+const PROBLEM: PartStatus[] = ["failed", "returned"];
+const HELD_AT_PAYPAL: PartStatus[] = ["unclaimed", "onhold"];
 
 function utcDay(iso: string) {
   return iso.slice(0, 10);
@@ -248,6 +249,18 @@ export async function postBatch(batchId: number): Promise<Batch> {
         getDb().prepare("UPDATE batches SET state = 'posted', payout_batch_id = ?, error = NULL WHERE id = ?").run(id, batchId);
         getDb().prepare("UPDATE parts SET status = 'sent', updated_at = ? WHERE batch_id = ? AND status = 'queued'").run(nowIso(), batchId);
       });
+    } else if (isDuplicateBatch(e)) {
+      // PayPal already has this batch (seen in the sandbox: 400 with no link back to it).
+      // Never post again and never call it failed. The parts left the account.
+      tx(() => {
+        getDb().prepare("UPDATE batches SET state = 'posted', error = 'ALREADY_AT_PAYPAL' WHERE id = ?").run(batchId);
+        getDb()
+          .prepare(
+            `UPDATE parts SET status = 'sent', hold_reason = 'PayPal already has this payout but did not send back its batch ID, so Portion cannot read it back. Check the sandbox account activity.', updated_at = ?
+             WHERE batch_id = ? AND status = 'queued'`,
+          )
+          .run(nowIso(), batchId);
+      });
     } else if (e.retryable) {
       // We do not know if PayPal made the batch. Retrying with the same request ID is safe.
       getDb().prepare("UPDATE batches SET state = 'unknown', error = ? WHERE id = ?").run(e.name, batchId);
@@ -261,6 +274,11 @@ export async function postBatch(batchId: number): Promise<Batch> {
     }
   }
   return getBatch(batchId)!;
+}
+
+/** PayPal's reply when a sender_batch_id was already used (sandbox, 2026-11-10). */
+export function isDuplicateBatch(e: PayPalError): boolean {
+  return e.status === 400 && /sender_batch_id already exists|DUPLICATE/i.test(`${e.name} ${e.message}`);
 }
 
 const STATUS_MAP: Record<string, PartStatus> = {
@@ -325,9 +343,16 @@ export function refreshPaymentStatus(paymentId: number) {
   if (parts.length === 0) return;
   const problems = parts.filter((p) => PROBLEM.includes(p.status));
   const waiting = parts.filter((p) => p.status === "needs_approval");
+  const held = parts.filter((p) => HELD_AT_PAYPAL.includes(p.status));
   const allSettled = parts.every((p) => TERMINAL_OK.includes(p.status));
   if (problems.length) {
     setPaymentStatus(paymentId, "needs_attention", `${problems.length} part(s) did not arrive. See below.`);
+  } else if (held.length) {
+    setPaymentStatus(
+      paymentId,
+      "paying",
+      `${held.length} part(s) are waiting at PayPal. An unclaimed payout goes back to the account if nobody claims it in 30 days.`,
+    );
   } else if (allSettled) {
     const anyPayout = parts.some((p) => p.kind === "payout" && p.status === "paid");
     setPaymentStatus(paymentId, anyPayout ? "done" : "kept", null);

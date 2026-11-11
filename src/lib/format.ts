@@ -49,7 +49,7 @@ export const PAYMENT_LABEL: Record<PaymentStatus, string> = {
   recorded: "Received",
   waiting_plan: "Waiting for a plan",
   waiting_user: "Waiting for you",
-  paying: "Dividing",
+  paying: "In progress",
   done: "Done",
   needs_attention: "Needs attention",
   kept: "Done, all kept",
